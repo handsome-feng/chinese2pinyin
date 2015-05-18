@@ -24,12 +24,21 @@
 #include <list>
 #include <cstring>
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include "cdb.h"
+
+
 using namespace std;
 
 #define START 0x3400
 #define END   0x9fff
 #define DATA  "table.dat"
 string dict[0x9fff][10] = {};
+
+struct cdb_make cdbm;
+int fd;
 
 std::list <string> parse(const char* c, int len)
 {
@@ -149,37 +158,126 @@ int init()
     }
     return 0;
 }
-int main()
+
+int find()
+{
+    struct cdb cdb;
+    char key[40] = "/tmp/test";
+    char *val;
+    unsigned int vlen, vpos, len = 0;
+
+#if 0
+    fd = open("demo.db", O_RDONLY);
+    if(fd < 0)
+        return -1;
+
+    fd = open("demo.db", O_RDONLY);
+    if (cdb_seek(fd, key, strlen(key), &vlen) > 0) {
+        /* if key was found, file will be positioned to the
+         * start of data value and it's length will be placed to vlen */
+        val = (char*)malloc(vlen);
+        cdb_bread(fd, val, len); /* read the value;
+                                  * plain read() will do as well. */
+        /* handle the value */
+        printf("value is %s\n", val);
+    }
+
+    struct cdb_find cdbf; /* structure to hold current find position */
+    cdb_findinit(&cdbf, &cdb, key, strlen(key)); /* initialize search of key */
+    while(cdb_findnext(&cdbf) > 0) {
+        vpos = cdb_datapos(&cdb);
+        vlen = cdb_datalen(&cdb);
+        val = (char*)malloc(vlen);
+        cdb_read(&cdb, val, vlen, vpos);
+        printf("value is %s\n", val);
+        /* handle the value */
+        free(val);
+    }
+#endif
+#if 1
+    cdb_init(&cdb, fd); /* initialize internal structure */
+    if (cdb_find(&cdb, key, strlen(key)) > 0) { /* if search successeful */
+        vpos = cdb_datapos(&cdb); /* position of data in a file */
+        vlen = cdb_datalen(&cdb); /* length of data */
+        val = (char*)malloc(vlen+1); /* allocate memory */
+        memset(val,0, vlen);
+        cdb_read(&cdb, val, vlen, vpos); /* read the value into buffer */
+        printf("value is %s\n", val);
+    }
+    else{
+
+        printf("not found key is %s\n", key);
+        printf("keylen is %ld\n", strlen(key));
+    }
+#endif
+    return 0;
+}
+
+int indexFile(string indexPath)
+{
+
+  FILE *fp;
+  char filePath[2048];
+
+  /* Open the command for reading. */
+  fp = popen(("locate "+ indexPath).data(), "r");
+  if (fp == NULL) {
+    printf("Failed to run command\n" );
+    exit(1);
+  }
+
+  fd = open("tmpfile", O_RDWR|O_CREAT, 0666);
+  cdb_make_start(&cdbm, fd);
+  /* Read the output a line at a time - output it. */
+  while (fgets(filePath, sizeof(filePath), fp) != NULL) {
+
+      printf("file:%s", filePath);
+#if 1
+      list <string> result;
+      list <string>::iterator it;
+      //FIXME: length -1
+      result = parse(filePath, strlen(filePath));
+
+      cout << "filePath len: "<< strlen(filePath)<< endl;
+      list <string> fin;
+      for (it = result.begin(); it != result.end(); it++) {
+          cout << "*it: "<< *it << " " << endl;
+          combin(fin, getCandPinYin(*it));
+
+      }
+
+      //save to database 
+
+      //print result
+      for (it = fin.begin(); it != fin.end(); it++) {
+          cout << "fin:" << *it  << " length is : " << (*it).length() << "data" << strlen((*it).data())<< endl;
+          cdb_make_add(&cdbm, (*it).data(), (*it).length(), filePath, strlen(filePath));
+      }
+
+      //usleep(200);
+  #endif
+  }
+  /* final stage - write indexes to CDB file */
+  cdb_make_finish(&cdbm);
+  rename("tmpfile", "demo.db");
+  /* atomically replace CDB file with newly built one */
+
+  pclose(fp);
+
+  return 0;
+}
+
+int main(int argc, char* argv[])
 {
     init();
 
-//    string testcase = "b追a适c好";
-//    string testcase = "这是一个test文档.doc";
-//    string testcase = "这.长.长.重.档.doc";
-    //string testcase = "这长test.doc";
-    string testcase;
-    cout << "Input a string: (for example: 新建文档test.txt)" << endl; 
-    cin >> testcase;
+    if (argc > 1)
+        string testcase = argv[1];
+    else 
+        string testcase = "/tmp";
+    
+    indexFile(argv[1]);
 
-    list <string> result;
-    list <string>::iterator it;
-    result = parse(testcase.data(), testcase.length());
-
-    cout << "testcase: " << testcase << endl;
-
-    list <string> fin;
-    for (it = result.begin(); it != result.end(); it++) {
-//        cout << "*it: "<< *it << " " << endl;
-        combin(fin, getCandPinYin(*it));
-    }
-
-    //print result
-//    list <string>::iterator it;
-    for (it = fin.begin(); it != fin.end(); it++) {
-        cout << "fin : " << *it << endl;
-    }
-
-    cout << "total: "<< fin.size() << endl;
-
+    find();
     return 0;
 }
