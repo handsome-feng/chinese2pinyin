@@ -27,7 +27,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include "cdb.h"
+#include <sqlite3.h> 
 
 
 using namespace std;
@@ -37,8 +37,10 @@ using namespace std;
 #define DATA  "table.dat"
 string dict[0x9fff][10] = {};
 
-struct cdb_make cdbm;
-int fd;
+//vedis *pStore;          /* Datastore handle */
+sqlite3 *db;
+int rc;
+bool bHasChinese = false;
 
 std::list <string> parse(const char* c, int len)
 {
@@ -55,6 +57,7 @@ std::list <string> parse(const char* c, int len)
             string tmp(ch);
             ret.push_back(tmp);
             i += 2;
+            bHasChinese = true;
         }
         else {
             memset(ch, 0, 0xf);
@@ -158,59 +161,13 @@ int init()
     }
     return 0;
 }
-
-int find()
-{
-    struct cdb cdb;
-    char key[40] = "/tmp/test";
-    char *val;
-    unsigned int vlen, vpos, len = 0;
-
-#if 0
-    fd = open("demo.db", O_RDONLY);
-    if(fd < 0)
-        return -1;
-
-    fd = open("demo.db", O_RDONLY);
-    if (cdb_seek(fd, key, strlen(key), &vlen) > 0) {
-        /* if key was found, file will be positioned to the
-         * start of data value and it's length will be placed to vlen */
-        val = (char*)malloc(vlen);
-        cdb_bread(fd, val, len); /* read the value;
-                                  * plain read() will do as well. */
-        /* handle the value */
-        printf("value is %s\n", val);
-    }
-
-    struct cdb_find cdbf; /* structure to hold current find position */
-    cdb_findinit(&cdbf, &cdb, key, strlen(key)); /* initialize search of key */
-    while(cdb_findnext(&cdbf) > 0) {
-        vpos = cdb_datapos(&cdb);
-        vlen = cdb_datalen(&cdb);
-        val = (char*)malloc(vlen);
-        cdb_read(&cdb, val, vlen, vpos);
-        printf("value is %s\n", val);
-        /* handle the value */
-        free(val);
-    }
-#endif
-#if 1
-    cdb_init(&cdb, fd); /* initialize internal structure */
-    if (cdb_find(&cdb, key, strlen(key)) > 0) { /* if search successeful */
-        vpos = cdb_datapos(&cdb); /* position of data in a file */
-        vlen = cdb_datalen(&cdb); /* length of data */
-        val = (char*)malloc(vlen+1); /* allocate memory */
-        memset(val,0, vlen);
-        cdb_read(&cdb, val, vlen, vpos); /* read the value into buffer */
-        printf("value is %s\n", val);
-    }
-    else{
-
-        printf("not found key is %s\n", key);
-        printf("keylen is %ld\n", strlen(key));
-    }
-#endif
-    return 0;
+static int callback(void *NotUsed, int argc, char **argv, char **azColName){
+   int i;
+   for(i=0; i<argc; i++){
+      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+   }
+   printf("\n");
+   return 0;
 }
 
 int indexFile(string indexPath)
@@ -218,6 +175,8 @@ int indexFile(string indexPath)
 
   FILE *fp;
   char filePath[2048];
+  string sql;
+  char *zErrMsg = 0;
 
   /* Open the command for reading. */
   fp = popen(("locate "+ indexPath).data(), "r");
@@ -225,45 +184,67 @@ int indexFile(string indexPath)
     printf("Failed to run command\n" );
     exit(1);
   }
+	/* Open our datastore */
+    rc = sqlite3_open("v.db", &db);
+    if( rc ){
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        exit(0);
+    }else{
+//        fprintf(stderr, "Opened database successfully\n");
+    }
 
-  fd = open("tmpfile", O_RDWR|O_CREAT, 0666);
-  cdb_make_start(&cdbm, fd);
   /* Read the output a line at a time - output it. */
   while (fgets(filePath, sizeof(filePath), fp) != NULL) {
 
-      printf("file:%s", filePath);
 #if 1
       list <string> result;
       list <string>::iterator it;
+      bHasChinese = false;
       //FIXME: length -1
-      result = parse(filePath, strlen(filePath));
+      result = parse(filePath, strlen(filePath)-1);
 
-      cout << "filePath len: "<< strlen(filePath)<< endl;
+      if (!bHasChinese)
+          continue;
+
       list <string> fin;
       for (it = result.begin(); it != result.end(); it++) {
-          cout << "*it: "<< *it << " " << endl;
+ //         cout << "*it: "<< *it << " " << endl;
           combin(fin, getCandPinYin(*it));
 
       }
 
       //save to database 
-
       //print result
       for (it = fin.begin(); it != fin.end(); it++) {
-          cout << "fin:" << *it  << " length is : " << (*it).length() << "data" << strlen((*it).data())<< endl;
-          cdb_make_add(&cdbm, (*it).data(), (*it).length(), filePath, strlen(filePath));
+          //cout << "fin:" << *it  << " length is : " << (*it).length() << "  data   " << strlen((*it).data())<< endl;
+//          cout << "*it " << (*it).data() << "filePath " << filePath;
+
+          //sql = "INSERT INTO dashpinyin (pinyin,chinese) VALUES('insert','done');";
+          
+          stringstream str;
+          string path(filePath);
+          str << "INSERT INTO dashpinyin (pinyin,chinese) VALUES('" << (*it).data() << "','" <<path.substr(0, path.length() - 1).data() << "');";
+          //cout << str.str().c_str()<< endl;
+#if 1
+          /* Execute SQL statement */
+          rc = sqlite3_exec(db, str.str().c_str(), callback, 0, &zErrMsg);
+          if( rc != SQLITE_OK ){
+              fprintf(stderr, "SQL error: %s\n", zErrMsg);
+              sqlite3_free(zErrMsg);
+          }else{
+              //fprintf(stdout, "Records created successfully\n");
+          }
+#endif
+
       }
 
-      //usleep(200);
+
   #endif
-  }
-  /* final stage - write indexes to CDB file */
-  cdb_make_finish(&cdbm);
-  rename("tmpfile", "demo.db");
-  /* atomically replace CDB file with newly built one */
+  }//end of while
 
   pclose(fp);
 
+  sqlite3_close(db);
   return 0;
 }
 
@@ -274,10 +255,9 @@ int main(int argc, char* argv[])
     if (argc > 1)
         string testcase = argv[1];
     else 
-        string testcase = "/tmp";
+        string testcase = "/home";
     
     indexFile(argv[1]);
 
-    find();
     return 0;
 }
