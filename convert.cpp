@@ -24,12 +24,16 @@
 #include <list>
 #include <cstring>
 
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/file.h>
+#include <errno.h>
+
 #include <sqlite3.h> 
 
-#include <semaphore.h>
+#define PIDFILE "/dev/shm/pinyin.pid"
 
 using namespace std;
 
@@ -249,16 +253,25 @@ int indexFile(string indexPath)
   return 0;
 }
 
+void my_handler(int s){
+    unlink(PIDFILE);
+    exit(1);
+}
+
 int main(int argc, char* argv[])
 {
-    sem_t *mysem;
-    mysem = sem_open("Pinyin", O_CREAT|O_EXCL);
-    if ( mysem == NULL ){
+    signal (SIGINT,my_handler);
+    signal (SIGTERM,my_handler);
+    signal (SIGSEGV,my_handler);
+
+    int pid_file = open(PIDFILE, O_CREAT | O_RDWR, 0666);
+    int rc = flock(pid_file, LOCK_EX | LOCK_NB);
+    if(rc) {
+        if(EWOULDBLOCK == errno)
         fprintf(stderr, "Another instance is running!\n");
         exit(1);
     }
 
-    /* the app code here*/
     init();
 
     if (argc > 1)
@@ -267,10 +280,5 @@ int main(int argc, char* argv[])
         string testcase = "/home";
     
     indexFile(argv[1]);
-
-    /* end of the app */
-    sem_unlink("Pinyin");
-    sem_close(mysem);
-
     return 0;
 }
