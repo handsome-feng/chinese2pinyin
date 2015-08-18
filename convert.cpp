@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <sqlite3.h> 
 
+#include <semaphore.h>
 
 using namespace std;
 
@@ -250,6 +251,14 @@ int indexFile(string indexPath)
 
 int main(int argc, char* argv[])
 {
+    sem_t *mysem;
+    mysem = sem_open("Pinyin", O_CREAT|O_EXCL);
+    if ( mysem == NULL ){
+        fprintf(stderr, "Another instance is running!\n");
+        exit(1);
+    }
+
+    /* the app code here*/
     init();
 
     if (argc > 1)
@@ -258,6 +267,10 @@ int main(int argc, char* argv[])
         string testcase = "/home";
     
     indexFile(argv[1]);
+
+    /* end of the app */
+    sem_unlink("Pinyin");
+    sem_close(mysem);
 
     return 0;
 }

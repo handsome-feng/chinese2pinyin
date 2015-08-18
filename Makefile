@@ -1,4 +1,4 @@
 all:
-	g++ -g convert.cpp -lcdb -o convert
+	g++ -g convert.cpp -lsqlite3 -lpthread -o convert
 clean:
 	rm convert
