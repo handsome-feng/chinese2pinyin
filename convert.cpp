@@ -35,6 +35,7 @@
 #include <sqlite3.h> 
 
 #define PIDFILE "/dev/shm/pinyin.pid"
+#define DBFILE "/.pinyinsearch/pinyin.db"
 
 using namespace std;
 
@@ -185,6 +186,68 @@ bool is_dir(const char* path) {
     return S_ISDIR(buf.st_mode);
 }
 
+string getHomePath()
+{
+    const char* home = getenv("HOME");
+    string ret;
+
+    if (home) {
+        return string(home);
+    }
+    else
+        return ret;
+}
+
+bool fileExists(string filename) {
+    struct stat fileInfo;
+    return stat(filename.c_str(), &fileInfo) == 0;
+}
+
+bool creatTable()
+{
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int  rc;
+    const char *sql;
+
+    /* Open database */
+    rc = sqlite3_open((getHomePath()+DBFILE).data(), &db);
+    if( rc ){
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        return false;
+    }else{
+        /* Create SQL statement */
+        sql = "CREATE TABLE dashpinyin (" \
+                    "pinyin TEXT NOT NULL PRIMARY KEY," \
+                    "chinese TEXT NOT NULL );";
+
+        /* Execute SQL statement */
+        rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+        if( rc != SQLITE_OK ){
+            fprintf(stderr, "SQL error: %s\n", zErrMsg);
+            sqlite3_free(zErrMsg);
+        }else{
+            //fprintf(stdout, "Table created successfully\n");
+        }
+        sqlite3_close(db);
+
+        return true;
+    }
+
+}
+
+int openDB()
+{
+	/* Open our datastore */
+    rc = sqlite3_open((getHomePath() + DBFILE).data(), &db);
+    if( rc ){
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        exit(0);
+    }else{
+        return rc;
+    }
+}
+
 int indexFile(string indexPath)
 {
 
@@ -199,14 +262,17 @@ int indexFile(string indexPath)
     printf("Failed to run command\n" );
     exit(1);
   }
-	/* Open our datastore */
-    rc = sqlite3_open("v.db", &db);
-    if( rc ){
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-        exit(0);
-    }else{
-//        fprintf(stderr, "Opened database successfully\n");
-    }
+
+  if (fileExists((getHomePath()+DBFILE).data())){
+      openDB();
+  }
+  else{
+      if (!creatTable())
+          exit(-2);
+      else{
+          openDB();
+      }
+  }
 
   /* Read the output a line at a time - output it. */
     while (fgets(filePath, sizeof(filePath), fp) != NULL) {
@@ -216,7 +282,7 @@ int indexFile(string indexPath)
         list <string>::iterator it;
         bHasChinese = false;
         //FIXME: length -1
-cout << filePath << endl;
+cout << filePath;
         stringstream s;
         string pathstr(filePath);
         if(is_dir(pathstr.substr(0, pathstr.length() - 1).data())) {
