@@ -117,7 +117,12 @@ int combin(list<string>& dst, list<string> arg)
     for (itDst = dst.begin(); itDst != dst.end(); itDst++) {
         cout << "dst : " << *itDst << endl;
     }
+    cout << "dst size : " << dst.size() << "     arg size : " << arg.size() << endl;
 #endif
+    if(dst.size()>500) {
+        return 0;
+    }
+
     for (itArg = arg.begin(); itArg != arg.end(); itArg++) {
  //       cout << "arg : " << *itArg<<endl;
         for (itDst = dst.begin(); itDst != dst.end(); itDst++) {
@@ -306,7 +311,10 @@ cout << filePath;
           combin(fin, getCandPinYin(*it));
 
       }
-
+      //too many result
+      if(fin.size()>100) {
+          continue;
+      }
       //save to database 
       //print result
       for (it = fin.begin(); it != fin.end(); it++) {
