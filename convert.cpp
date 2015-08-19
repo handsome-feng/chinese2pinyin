@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <sqlite3.h> 
@@ -166,13 +167,22 @@ int init()
     }
     return 0;
 }
+
+static int cnt = 0;
 static int callback(void *NotUsed, int argc, char **argv, char **azColName){
    int i;
    for(i=0; i<argc; i++){
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+      cnt = atoi(argv[0]);
+//      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
    }
-   printf("\n");
+//   printf("\n");
    return 0;
+}
+
+bool is_dir(const char* path) {
+    struct stat buf;
+    stat(path, &buf);
+    return S_ISDIR(buf.st_mode);
 }
 
 int indexFile(string indexPath)
@@ -199,13 +209,26 @@ int indexFile(string indexPath)
     }
 
   /* Read the output a line at a time - output it. */
-  while (fgets(filePath, sizeof(filePath), fp) != NULL) {
+    while (fgets(filePath, sizeof(filePath), fp) != NULL) {
 
 #if 1
-      list <string> result;
-      list <string>::iterator it;
-      bHasChinese = false;
-      //FIXME: length -1
+        list <string> result;
+        list <string>::iterator it;
+        bHasChinese = false;
+        //FIXME: length -1
+cout << filePath << endl;
+        stringstream s;
+        string pathstr(filePath);
+        if(is_dir(pathstr.substr(0, pathstr.length() - 1).data())) {
+            continue;
+        }
+
+        s << "select count(*) from dashpinyin where chinese='" << pathstr.substr(0, pathstr.length() - 1).data() << "';";
+        rc = sqlite3_exec(db, s.str().c_str(), callback, 0, &zErrMsg);
+        if (cnt > 0){
+            continue;
+        }
+
       result = parse(filePath, strlen(filePath)-1);
 
       if (!bHasChinese)
