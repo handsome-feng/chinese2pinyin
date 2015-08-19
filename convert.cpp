@@ -49,6 +49,8 @@ sqlite3 *db;
 int rc;
 bool bHasChinese = false;
 
+bool fileExists(string filename); 
+
 std::list <string> parse(const char* c, int len)
 {
     list <string> ret;
@@ -182,6 +184,27 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName){
 //      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
    }
 //   printf("\n");
+   return 0;
+}
+
+static int updateDBCallback(void *NotUsed, int argc, char **argv, char **azColName){
+   int i;
+   stringstream s;
+   char *zErrMsg = 0;
+
+   for(i=0; i<argc; i++){
+      //printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+       string file(argv[i]);
+       if (!fileExists(argv[i])){
+           s << "delete from dashpinyin where chinese = '" <<  argv[i] <<  "';";
+           rc = sqlite3_exec(db, s.str().c_str(), 0, 0, &zErrMsg);
+           if( rc != SQLITE_OK ){
+               fprintf(stderr, "SQL error: %s\n", zErrMsg);
+               sqlite3_free(zErrMsg);
+           }
+       }
+   }
+   //printf("\n");
    return 0;
 }
 
@@ -350,6 +373,18 @@ cout << filePath;
   return 0;
 }
 
+int updateDB()
+{
+    openDB();
+    stringstream s;
+    char *zErrMsg = 0;
+    s << "select DISTINCT chinese from dashpinyin;";
+    rc = sqlite3_exec(db, s.str().c_str(), updateDBCallback, 0, &zErrMsg);
+
+    sqlite3_close(db);
+    return 0;
+}
+
 void my_handler(int s){
     unlink(PIDFILE);
     exit(1);
@@ -371,11 +406,14 @@ int main(int argc, char* argv[])
 
     init();
 
+    string dst;
     if (argc > 1)
-        string testcase = argv[1];
+        dst = argv[1];
     else 
-        string testcase = "/home";
+        dst = getHomePath() + "/Document";
     
-    indexFile(argv[1]);
+    indexFile(dst);
+    updateDB();
+
     return 0;
 }
