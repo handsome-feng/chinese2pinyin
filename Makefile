@@ -1,4 +1,4 @@
 all:
-	g++ -g convert.cpp -lsqlite3 -lpthread -o convert
+	g++ -g convert.cpp -lsqlite3 -lpthread -o chinese2pinyin
 clean:
-	rm convert
+	rm chinese2pinyin
