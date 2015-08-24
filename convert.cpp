@@ -35,6 +35,7 @@
 #include <sqlite3.h> 
 
 #define PIDFILE "/dev/shm/pinyin.pid"
+#define DBDIR "/.pinyinsearch/"
 #define DBFILE "/.pinyinsearch/pinyin.db"
 
 using namespace std;
@@ -284,8 +285,11 @@ int indexFile(string indexPath)
   string sql;
   char *zErrMsg = 0;
 
+  string cmd = "updatedb --require-visibility 0 -o " + getHomePath() + DBDIR + "locate.db"; 
+  system(cmd.data());
   /* Open the command for reading. */
-  fp = popen(("locate "+ indexPath).data(), "r");
+  cmd = "locate  " + indexPath + " --database=" + getHomePath() + DBDIR + "locate.db";
+  fp = popen(cmd.data(), "r");
   if (fp == NULL) {
     printf("Failed to run command\n" );
     exit(1);
