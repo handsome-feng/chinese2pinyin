@@ -16,9 +16,9 @@
  * =====================================================================================
  */
 #include <stdlib.h>
+#include <string>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <sstream>
 #include <algorithm>
 #include <list>
@@ -33,6 +33,7 @@
 #include <errno.h>
 
 #include <sqlite3.h> 
+#include "chinese2pinyin.h"
 
 #define PIDFILE "/dev/shm/pinyin.pid"
 #define DBDIR "/.pinyinsearch/"
@@ -393,7 +394,7 @@ void my_handler(int s){
     unlink(PIDFILE);
     exit(1);
 }
-
+#if 0
 int main(int argc, char* argv[])
 {
     signal (SIGINT,my_handler);
@@ -421,3 +422,4 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+#endif
