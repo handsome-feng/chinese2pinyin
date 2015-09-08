@@ -43,7 +43,7 @@ using namespace std;
 
 #define START 0x3400
 #define END   0x9fff
-#define DATA  "table.dat"
+#define DATA  "/usr/share/chinese2pinyin/data/table.dat"
 string dict[0x9fff][10] = {};
 
 //vedis *pStore;          /* Datastore handle */

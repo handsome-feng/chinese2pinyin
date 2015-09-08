@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
         pthread_join( thread1, NULL);
         pthread_join( thread2, NULL);
     }
-    else if (strcmp(argv[1], "-i") == 0){
+    else if (argc >= 2 && (strcmp(argv[1], "-i") == 0)){
         if (argc >= 3){
             for (i = 2; i < argc; i++)
                 cli(argv[i]);
