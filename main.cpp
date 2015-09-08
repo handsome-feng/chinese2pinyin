@@ -54,7 +54,11 @@ void *thread_index(void*)
         exit(1);
     }
 
-    init();
+    if (init()) {
+        perror("table.dat");
+        exit(-2);
+    }
+
     gDefault.push_back (getHomePath() + "/Document");
     list <string>::iterator it;
     int max = MIN * 60;

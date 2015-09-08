@@ -148,6 +148,10 @@ int init()
     ifstream infile(DATA);
     string line;
 
+    if(infile.fail()){
+        return -2;
+    }
+
     while (getline(infile, line))
     {
         std::stringstream strm(line);
