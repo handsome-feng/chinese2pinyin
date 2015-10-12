@@ -1,0 +1,14 @@
+Source: chinese2pinyin
+Section: utils
+Priority: optional
+Maintainer: Aron Xu <happyaron@ubuntu.com>
+Build-Depends: debhelper (>= 9), cmake, libsqlite3-dev
+Standards-Version: 3.9.6
+Homepage: https://github.com/kroody/chinese2pinyin
+
+Package: chinese2pinyin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: convert Chinese file name to Pinyin
+ Small tool to index a give folder, converting all Chinese file names
+ to Pinyin. Results are stored in SQLite database.
