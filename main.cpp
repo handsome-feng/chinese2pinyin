@@ -205,10 +205,10 @@ int main(int argc, char* argv[])
     }
     else {
         cout << "chinese2pinyin version 1.0" << endl;
-        cout << "    -d \t\t\tRun as deamon" << endl;
-        cout << "    -f \t\t\tRun in foreground" << endl;
-        cout << "    -i Full Path of Directory   index directory to database" << endl;
-        cout << "    -h \t\t\tPrint this help" << endl;
+        cout << "    -d \tRun as deamon" << endl;
+        cout << "    -f \tRun in foreground" << endl;
+        cout << "    -i \tIndex a directory to database (using full path)" << endl;
+        cout << "    -h \tPrint this help" << endl;
         cout << endl;
 
         return 1;
