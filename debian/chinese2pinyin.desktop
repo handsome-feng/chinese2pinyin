@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Pinyin Search Index
 GenericName=Pinyin Search Index
-Exec=chinese2pinyin
+Exec=chinese2pinyin -d
 Terminal=false
 Type=Application
 Categories=System;Utility;
