@@ -30,9 +30,6 @@
 #include "chinese2pinyin.h"
 
 #define PIDFILE "/dev/shm/pinyin.pid"
-#define DBDIR "/.pinyinsearch/"
-#define DBFILE "/.pinyinsearch/pinyin.db"
-
 #define MIN 60
 
 const char *socket_path = "\0hidden";
@@ -208,10 +205,10 @@ int main(int argc, char* argv[])
     }
     else {
         cout << "chinese2pinyin version 1.0" << endl;
-        cout << "    -d \t\t\trun as deamon" << endl;
-        cout << "    -f \t\t\trun in foreground" << endl;
-        cout << "    -i Directory path   index directory to database" << endl;
-        cout << "    -h \t\t\tprint this help" << endl;
+        cout << "    -d \t\t\tRun as deamon" << endl;
+        cout << "    -f \t\t\tRun in foreground" << endl;
+        cout << "    -i Full Path of Directory   index directory to database" << endl;
+        cout << "    -h \t\t\tPrint this help" << endl;
         cout << endl;
 
         return 1;

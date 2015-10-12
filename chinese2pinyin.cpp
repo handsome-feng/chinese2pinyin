@@ -36,7 +36,7 @@
 #include "chinese2pinyin.h"
 
 #define PIDFILE "/dev/shm/pinyin.pid"
-#define DBDIR "/.pinyinsearch/"
+#define DBDIR "/.pinyinsearch"
 #define DBFILE "/.pinyinsearch/pinyin.db"
 
 using namespace std;
@@ -150,6 +150,17 @@ int init()
 
     if(infile.fail()){
         return -2;
+    }
+
+
+    if (!fileExists(getHomePath() + DBDIR))
+    {
+        const int dir_err = mkdir((getHomePath() + DBDIR).data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        if (-1 == dir_err)
+        {
+            printf("Error creating directory");
+            exit(1);
+        }
     }
 
     while (getline(infile, line))
@@ -290,10 +301,10 @@ int indexFile(string indexPath)
   string sql;
   char *zErrMsg = 0;
 
-  string cmd = "updatedb --require-visibility 0 -o " + getHomePath() + DBDIR + "locate.db"; 
+  string cmd = "updatedb --require-visibility 0 -o " + getHomePath() + DBDIR + "/locate.db";
   system(cmd.data());
   /* Open the command for reading. */
-  cmd = "locate  " + indexPath + " --database=" + getHomePath() + DBDIR + "locate.db";
+  cmd = "locate  " + indexPath + " --database=" + getHomePath() + DBDIR + "/locate.db";
   fp = popen(cmd.data(), "r");
   if (fp == NULL) {
     printf("Failed to run command\n" );
