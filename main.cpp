@@ -26,13 +26,14 @@
 #include <list>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/inotify.h>
 
 #include "chinese2pinyin.h"
 
 #define PIDFILE "/dev/shm/pinyin.pid"
-#define MIN 60
 
 const char *socket_path = "\0hidden";
+int watch_fd;
 
 list <string> gPath;
 list <string> gDefault;
@@ -57,31 +58,46 @@ void *thread_index(void*)
     }
 
     gDefault.push_back (getHomePath() + "/Document");
+    gDefault.push_back (getHomePath() + "/文档");
     list <string>::iterator it;
-    int max = MIN * 60;
-    int cnt = 0;
+
+    char buffer[1024];
+    int len, wd;
+    watch_fd = inotify_init ();
+    if (watch_fd < 0) {
+        perror ("Fail to initialize inotify.\n");
+        exit (-2);
+    }
+
+    for (it = gDefault.begin(); it != gDefault.end(); it++) {
+        wd = inotify_add_watch(watch_fd, (*it).c_str(), IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO);
+        if (wd < 0) {
+            printf ("Can't add watch for %s.\n", (*it).c_str());
+            it = gDefault.erase(it);
+            continue;
+        }
+    }
 
     do
     {
+#ifdef PERMANENT_ADD
         if (gPath.size()) {
             for (it = gPath.begin(); it != gPath.end(); it++) {
                 indexFile(*it);
             }
             gPath.clear();
-        }
-        else{
-            sleep(1);
-            cnt += 1;
-            if(cnt > max){
-                for (it = gDefault.begin(); it != gDefault.end(); it++) {
-                    indexFile(*it);
-                }
-                updateDB();
+        } else {
+#endif
+            for (it = gDefault.begin(); it != gDefault.end(); it++) {
+                indexFile(*it);
             }
+            updateDB();
+#ifdef PERMANENT_ADD
         }
-    }while(1);
-
+#endif
+    } while (len = read (watch_fd, buffer, 1024));
 }
+
 void* srv(void*)
 {
   struct sockaddr_un addr;
@@ -119,7 +135,14 @@ void* srv(void*)
         string dir(buf);
         if (dir.size()){
             //dir.erase(dir.end()-1);
+#ifdef PERMANENT_ADD
+            int wd = inotify_add_watch(watch_fd, dir.c_str(), IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO);
+            if (wd < 0) {
+                printf ("Can't add watch for %s.\n", dir.c_str());
+            }
             gPath.push_back(dir);
+#endif
+            indexFile(dir);
         }
 
         memset(buf,0,sizeof(buf));
@@ -213,6 +236,7 @@ int main(int argc, char* argv[])
 
         return 1;
     }
+
     return 0;
 }
 

@@ -295,7 +295,6 @@ int openDB()
 
 int indexFile(string indexPath)
 {
-
   FILE *fp;
   char filePath[2048];
   string sql;
