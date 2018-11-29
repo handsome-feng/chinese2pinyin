@@ -1,0 +1,18 @@
+env:
+  global:
+  - PACKAGE_NAME=chinese2pinyin
+before_install:
+- export BUILD_VERSION=$(date "+%Y%m%d").$TRAVIS_BUILD_NUMBER
+- export PACKAGE_NAME_VERSION=$PACKAGE_NAME.$BUILD_VERSION.deb
+script:
+- dpkg-deb --build $PACKAGE_NAME
+- mv $PACKAGE_NAME.deb $PACKAGE_NAME_VERSION
+after_success:
+- ls -l $PACKAGE_NAME_VERSION
+- md5sum $PACKAGE_NAME_VERSION
+- dpkg --contents $PACKAGE_NAME_VERSION
+after_script:
+- |
+  echo "Uploading package(s) to $FTP_URL ..."
+  dput ppa:feng-kylin/test-daily *.source.changes || DEPLOY_FAILURE=true;
+  if [[ $DEPLOY_FAILURE == 'true' ]]; then echo "Uploading package(s) failed!"; travis_terminate 1; fi;
