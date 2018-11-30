@@ -9,7 +9,7 @@ before_install:
 - sudo apt-get install -y devscripts
 script:
 - tar -czvf ../chinese2pinyin_1.0.orig.tar.gz --exclude=debian --exclude=.git --exclude=.travis.yml .
-- debuild
+- sudo debuild
 after_success:
 - ls -l $PACKAGE_NAME_VERSION
 - md5sum $PACKAGE_NAME_VERSION
