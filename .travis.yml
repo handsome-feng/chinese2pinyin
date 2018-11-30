@@ -1,3 +1,4 @@
+dist: disco
 env:
   global:
   - PACKAGE_NAME=chinese2pinyin
@@ -7,6 +8,7 @@ before_install:
 - sudo apt-get update
 - sudo apt-get install -y devscripts
 script:
+- tar -czvf . --exclude=debian --exclude=.git --exclude=.travis.yml ../chinese2pinyin_1.0.orig.tar.gz 
 - debuild
 after_success:
 - ls -l $PACKAGE_NAME_VERSION
@@ -14,5 +16,6 @@ after_success:
 after_script:
 - |
   echo "Uploading package(s) to ppa ..."
+  ls
   dput ppa:feng-kylin/test-daily ../*.source.changes || DEPLOY_FAILURE=true;
   if [[ $DEPLOY_FAILURE == 'true' ]]; then echo "Uploading package(s) failed!"; travis_terminate 1; fi;
